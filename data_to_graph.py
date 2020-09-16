@@ -85,8 +85,8 @@ def data_to_graph(scenario, graph_id):
 
 if __name__ == '__main__':
 
-    scenario = 'YouTube'
-    for graph_id in range(66,100):
+    scenario = 'VGame'
+    for graph_id in range(200,299):
         dgl_graph = data_to_graph(scenario, graph_id)
         dgl_graphname = "dataset/dglGraph/"+scenario+"/"+str(graph_id)+".bin"
         graph_labels = {"glabel": th.tensor([graph_id])}
@@ -94,3 +94,5 @@ if __name__ == '__main__':
         print("graph #"+str(graph_id)+" of scenario " + scenario + " has been saved!")
 
 
+# load graph from disk
+# glist, label_dict = dgl.load_graphs("dataset/dglGraph/YouTube/0.bin")
