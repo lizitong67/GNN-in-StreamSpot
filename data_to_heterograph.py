@@ -17,7 +17,7 @@ import csv
 
 # data: source-id, source-type, destination-id, destination-type, edge-type, timestamp, graph-id
 
-def data_to_graph(scenario, graph_id):
+def data_to_heterograph(scenario, graph_id):
     data_path = 'dataset/data/'+scenario+'/'+str(graph_id)+'.csv'
     graph_data = {}
     # description of entity_dic: {entity_1:[4, 8099], entity_1:[2098, 2794], ...}
@@ -87,7 +87,7 @@ if __name__ == '__main__':
 
     scenario = 'VGame'
     for graph_id in range(200,299):
-        dgl_graph = data_to_graph(scenario, graph_id)
+        dgl_graph = data_to_heterograph(scenario, graph_id)
         dgl_graphname = "dataset/dglGraph/"+scenario+"/"+str(graph_id)+".bin"
         graph_labels = {"glabel": th.tensor([graph_id])}
         dgl.save_graphs(dgl_graphname, [dgl_graph], graph_labels)
@@ -96,3 +96,5 @@ if __name__ == '__main__':
 
 # load graph from disk
 # glist, label_dict = dgl.load_graphs("dataset/dglGraph/YouTube/0.bin")
+
+
