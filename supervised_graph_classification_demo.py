@@ -27,7 +27,6 @@ class Classifier(nn.Module):
         self.linear1 = nn.Linear(hidden_dim, hidden_dim)
         self.linear2 = nn.Linear(hidden_dim, 10)
         self.classify = nn.Linear(10, n_classes)
-        self.sigmoid = nn.Sigmoid()
 
     def forward(self, g, h):
         # Apply graph convolution and activation.
@@ -37,9 +36,9 @@ class Classifier(nn.Module):
             g.ndata['h'] = h
             # Calculate graph representation by average readout.
             hg = dgl.mean_nodes(g, 'h')
-            x = self.linear1(hg)
-            x = self.linear2(x)
-            output = self.sigmoid(self.classify(x))
+            x = F.relu(self.linear1(hg))
+            x = F.relu(self.linear2(x))
+            output = th.sigmoid(self.classify(x))
             return output
 
 # Customized Dataset
@@ -98,9 +97,9 @@ if __name__ == "__main__":
             feats = batched_graph.ndata['feat'].float()
             logits = model(batched_graph, feats)
             loss = F.cross_entropy(logits, labels)
-            opt.zero_grad()
-            loss.backward()
-            opt.step()
+            opt.zero_grad()     # Clears the gradients of all weights
+            loss.backward()     # backward propagation
+            opt.step()          # update the weights
         print('Epoch %d | Loss: %.4f' % (epoch, loss.item()))
 
 
