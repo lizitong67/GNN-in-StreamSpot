@@ -30,12 +30,13 @@ class Classifier(nn.Module):
         # Apply graph convolution and activation.
         h = F.relu(self.conv1(g, h))
         h = F.relu(self.conv2(g, h))
+        h = F.relu(self.linear(h))
+
         with g.local_scope():
             g.ndata['h'] = h
             # Calculate graph representation by average readout.
             hg = dgl.mean_nodes(g, 'h')
-            x = F.relu(self.linear(hg))
-            output = th.sigmoid(self.classify(x))
+            output = th.sigmoid(self.classify(hg))
             return output
 
 # Customized Dataset
@@ -103,8 +104,10 @@ def main(train_dataloader, test_dataloader):
     for graphs, labels in test_dataloader:
         feats = graphs.ndata['feat'].float()
         output = model(graphs, feats)
+        # dim=1; take index as the predicted label: 0 or 1
         _, predicted = th.max(output.data, 1)
         total += labels.size(0)
+        # for tensor, bool has the sum() methos; and the item() return the value of tensor(only have one value)
         correct += (predicted == labels).sum().item()
     print('Test accuracy of the model on the test data: {} %'.format(100 * correct / total))
 
