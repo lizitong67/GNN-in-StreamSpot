@@ -17,6 +17,7 @@ from time import *
 import csv
 
 
+
 def data_to_homograph(scenario, graph_id):
     data_path = 'dataset/split_data/' + scenario + '/' + str(graph_id) + '.csv'
     # data_entry: source-id, source-type, destination-id, destination-type, edge-type, timestamp, graph-id
@@ -46,63 +47,55 @@ def data_to_homograph(scenario, graph_id):
                 node_original_id.append(dst_id)
             v.append(node_original_id.index(dst_id))
 
-            # node and edge features
-            # src_node_feat = [0]*len(node_types)
-            # src_node_feat[node_types.index(src_type)] = 1
-            # if node_original_id.index(src_id)+1 > len(node_feats):
-            #     node_feats[len(node_feats) : node_original_id.index(src_id)+1] = [[0]*len(node_types)]
-            #     node_feats[node_original_id.index(src_id)] = src_node_feat
-            # dst_node_feat = [0]*len(node_types)
-            # dst_node_feat[node_types.index(dst_type)] = 1
-            # if node_original_id.index(dst_id)+1 > len(node_feats):
-            #     node_feats[len(node_feats) : node_original_id.index(dst_id)+1] = [[0]*len(node_types)]
-            #     node_feats[node_original_id.index(dst_id)] = dst_node_feat
-            # edge_feat = [0]*len(edge_types)
-            # edge_feat[edge_types.index(edge_type)] = 1
-            # edge_feats.append(edge_feat)
-
+            # one-hot encoding for node and edge features
+            src_node_feat = [0]*len(node_types)
+            src_node_feat[node_types.index(src_type)] = 1
+            if node_original_id.index(src_id)+1 > len(node_feats):
+                node_feats[len(node_feats) : node_original_id.index(src_id)+1] = [[0]*len(node_types)]
+                node_feats[node_original_id.index(src_id)] = src_node_feat
+            dst_node_feat = [0]*len(node_types)
+            dst_node_feat[node_types.index(dst_type)] = 1
+            if node_original_id.index(dst_id)+1 > len(node_feats):
+                node_feats[len(node_feats) : node_original_id.index(dst_id)+1] = [[0]*len(node_types)]
+                node_feats[node_original_id.index(dst_id)] = dst_node_feat
+            edge_feat = [0]*len(edge_types)
+            edge_feat[edge_types.index(edge_type)] = 1
+            edge_feats.append(edge_feat)
 
     u_ids, v_ids = th.tensor(u), th.tensor(v)
-    # node_feats, edge_feats = th.tensor(node_feats), th.tensor(edge_feats)
+    node_feats, edge_feats = th.tensor(node_feats), th.tensor(edge_feats)
     g = dgl.graph((u_ids, v_ids), idtype=th.int32)
-    bg = dgl.add_reverse_edges(g)
-
-    # g.ndata['type'] = node_feats
-    # g.edata['type'] = edge_feats
-
-    """
-    print(g)
-    # Youtube/0.csv
-    [+] Result:
-    Graph(num_nodes=8286, num_edges=139951,
-    ndata_schemes={'type': Scheme(shape=(8,), dtype=torch.int64)}
-    edata_schemes={'type': Scheme(shape=(26,), dtype=torch.int64)})
-    """
+    g.ndata['feat'] = node_feats
+    g.edata['feat'] = edge_feats
+    bg = dgl.add_reverse_edges(g, copy_ndata=True, copy_edata=True)
     return bg
 
 
 if __name__ == "__main__":
     start_time = time()
-    scenario = "YouTube"
-    graph_id = 0
-    edge_types = ['execve', 'access', 'mmap2', 'open', 'fstat', 'close', 'read', 'stat', 'write',
-                  'unlink', 'clone', 'waitpid', 'bind', 'listen', 'chmod', 'connect', 'writev',
-                  'recv', 'ftruncate', 'sendmsg', 'send', 'recvmsg', 'accept', 'sendto', 'recvfrom',
+
+    edge_types = ['execve', 'access', 'mmap2', 'open', 'fstat', 'close', 'read', 'stat', 'write', 'unlink', 'clone',
+                  'waitpid', 'bind', 'listen', 'chmod', 'connect', 'writev', 'recv', 'ftruncate', 'sendmsg', 'send',
+                  'recvmsg', 'accept', 'sendto', 'recvfrom',
                   'truncate']
     node_types = ['process', 'file', 'MAP_ANONYMOUS', 'stdin', 'stdout', 'stderr', 'NA', 'thread']
-    g = data_to_homograph(scenario, graph_id)
 
-    # Utilize random walk to generate node features
-    print("graph #" + str(graph_id) + " of scenario " + scenario + " has been saved!")
-    result = dgl.sampling.random_walk(g, g.nodes(), length=5, restart_prob=0.3)
-    node_feats = result[0]
-    g.ndata['feat'] = node_feats[:, 1:]
-    print(g)
-    print(g.ndata['feat'][0:100])
+    scenario = "Drive-by-download"
+    for graph_id in range(300, 400):
+        g = data_to_homograph(scenario, graph_id)
+        # # Utilize random walk to generate node features
+        # result = dgl.sampling.random_walk(g, g.nodes(), length=5, restart_prob=0)
+        # node_feats = result[0] + 1
+        # # normalize
+        # node_feats = node_feats.type(th.FloatTensor)
+        # node_feats = F.normalize(node_feats, p=2, dim=1)
+        # g.ndata['feat'] = node_feats[:, 1:]
+
+        # Store homograph locally
+        dgl_graphname = "dataset/homograph/" + scenario + "/" + str(graph_id) + ".bin"
+        graph_labels = {scenario: th.tensor([graph_id])}
+        dgl.save_graphs(dgl_graphname, [g], graph_labels)
+        print("graph #" + str(graph_id) + " of scenario " + scenario + " has been saved!")
+
     end_time = time()
-    print("Time used: " + str(end_time-start_time))
-
-    # Store homograph locally
-    # dgl_graphname = "dataset/dglGraph/" + scenario + "/" + str(graph_id) + ".bin"
-    # graph_labels = {"glabel": th.tensor([graph_id])}
-    # dgl.save_graphs(dgl_graphname, [g], graph_labels)
+    print("Time used: " + str(end_time - start_time))
