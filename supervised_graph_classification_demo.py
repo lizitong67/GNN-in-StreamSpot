@@ -75,6 +75,7 @@ class MyDataset(DGLDataset):
         return len(self.graph_list)
 
 def collate(batch):
+    # Merge a batch of data
     graphs, labels = map(list, zip(*batch))
     batched_graph = dgl.batch(graphs)
     batched_labels = th.tensor(labels)
