@@ -92,6 +92,26 @@ def graph_embedding():
     th.save(dgi.state_dict(), 'best_dgi.pkl')
     print("[+] The best training model has been saved.")
 
+def classify():
+    # dataset
+    glist, label_dict = dgl.load_graphs("dataset/homograph/YouTube/0.bin")
+    g = glist[0]
+
+    # get graph embedding
+    dgi = DGI(in_feats,
+              n_hidden,
+              dropout)
+    dgi.load_state_dict(th.load('best_dgi.pkl'))
+    feature = g.ndata['feat'].float()
+    g_embedding = dgi.encoder(g, feature)
+
+    # anomaly detection
+    model = Autoencoder()
+    criterion = nn.MSELoss()
+    optimizer = th.optim.Adam(model.parameters())
+
+    # continue in from here
+
 if __name__ == "__main__":
     # initial parameters
     in_feats = 8
@@ -120,4 +140,5 @@ if __name__ == "__main__":
         drop_last=False,
         shuffle=True)
     # graph_embedding()
-    classify()
+    # classify()
+
