@@ -82,7 +82,7 @@ def collate(batch):
     batched_labels = th.tensor(labels)
     return batched_graph, batched_labels
 
-def main(train_dataloader, test_dataloader):
+def main():
     model = Classifier(8, 20, 2)
     opt = th.optim.Adam(model.parameters())
     for epoch in range(80):
@@ -167,5 +167,5 @@ if __name__ == "__main__":
         drop_last=False,
         shuffle=True)
 
-    main(train_dataloader, test_dataloader)
+    main()
     # understand_of_testing(test_dataloader)
