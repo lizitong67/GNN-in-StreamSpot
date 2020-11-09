@@ -14,16 +14,15 @@ from gcn import GCN
 
 
 class Encoder(nn.Module):
-    def __init__(self, g, in_feats, n_hidden, n_layers, activation, dropout):
+    def __init__(self, in_feats, n_hidden, dropout):
         super(Encoder, self).__init__()
-        self.g = g
-        self.conv = GCN(g, in_feats, n_hidden, n_hidden, n_layers, activation, dropout)
+        self.conv = GCN(in_feats, n_hidden, n_hidden, dropout)
 
-    def forward(self, features, corrupt=False):
+    def forward(self, g, features, corrupt=False):
         if corrupt:
-            perm = torch.randperm(self.g.number_of_nodes())
+            perm = torch.randperm(g.number_of_nodes())
             features = features[perm]
-        features = self.conv(features)
+        features = self.conv(g, features)
         return features
 
 
@@ -48,15 +47,15 @@ class Discriminator(nn.Module):
 
 
 class DGI(nn.Module):
-    def __init__(self, g, in_feats, n_hidden, n_layers, activation, dropout):
+    def __init__(self, in_feats, n_hidden, dropout):
         super(DGI, self).__init__()
-        self.encoder = Encoder(g, in_feats, n_hidden, n_layers, activation, dropout)
+        self.encoder = Encoder(in_feats, n_hidden, dropout)
         self.discriminator = Discriminator(n_hidden)
         self.loss = nn.BCEWithLogitsLoss()
 
-    def forward(self, features):
-        positive = self.encoder(features, corrupt=False)
-        negative = self.encoder(features, corrupt=True)
+    def forward(self, g, features):
+        positive = self.encoder(g, features, corrupt=False)
+        negative = self.encoder(g, features, corrupt=True)
         summary = torch.sigmoid(positive.mean(dim=0))
 
         positive = self.discriminator(positive, summary)

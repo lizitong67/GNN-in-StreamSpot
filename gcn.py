@@ -1,35 +1,32 @@
+#! /usr/bin/env python
 """
-This code was copied from the GCN implementation in DGL examples.
+GCN module
+Author:	Alston
+Date: 2020.10.25
 """
-import torch
+import dgl
+import torch as th
 import torch.nn as nn
 from dgl.nn.pytorch import GraphConv
+import torch.nn.functional as F
 
 class GCN(nn.Module):
     def __init__(self,
-                 g,
                  in_feats,
                  n_hidden,
                  n_classes,
-                 n_layers,
-                 activation,
                  dropout):
         super(GCN, self).__init__()
-        self.g = g
-        self.layers = nn.ModuleList()
-        # input layer
-        self.layers.append(GraphConv(in_feats, n_hidden, activation=activation))
-        # hidden layers
-        for i in range(n_layers - 1):
-            self.layers.append(GraphConv(n_hidden, n_hidden, activation=activation))
-        # output layer
-        self.layers.append(GraphConv(n_hidden, n_classes))
-        self.dropout = nn.Dropout(p=dropout)
+        self.conv1 = GraphConv(in_feats, n_hidden)
+        self.conv2 = GraphConv(n_hidden, n_classes)
 
-    def forward(self, features):
-        h = features
-        for i, layer in enumerate(self.layers):
-            if i != 0:
-                h = self.dropout(h)
-            h = layer(self.g, h)
-        return h
+    def forward(self, g, h):
+        # Apply graph convolution and activation.
+        h = F.relu(self.conv1(g, h))
+        h = F.relu(self.conv2(g, h))
+
+        with g.local_scope():
+            g.ndata['h'] = h
+            # Calculate graph representation by average readout.
+            hg = dgl.mean_nodes(g, 'h')
+            return hg
