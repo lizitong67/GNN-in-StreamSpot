@@ -42,7 +42,7 @@ class Classifier(nn.Module):
 # Customized Dataset
 class MyDataset(DGLDataset):
     def __init__(self):
-        super().__init__(name="MyDataset")  # 调用父类构造方法
+        super().__init__(name="MyDataset", verbose=True)  # 调用父类构造方法
 
     def has_cache(self):
         return True
@@ -51,19 +51,20 @@ class MyDataset(DGLDataset):
         self.graph_list = []
         self.label_list = []
 
-        homograph = "dataset/homograph"
-        scenarios = os.listdir(homograph)
-        for scenario in scenarios:
-            file_path = "dataset/homograph/" + scenario
-            graphs = os.listdir(file_path)
-            for graph in graphs:
-                g_list, label_dict = dgl.load_graphs(file_path + '/' + graph)
-                self.graph_list.append(g_list[0])
-                for key, value in label_dict.items():
-                    if key != 'Drive-by-download':
-                        self.label_list.append(0)
-                    else:
-                        self.label_list.append(1)
+        for child_dir in ['normal', 'attack']:
+            homograph = "dataset/homograph/" + child_dir + '/'
+            scenarios = os.listdir(homograph)
+            for scenario in scenarios:
+                file_path = homograph + scenario
+                graphs = os.listdir(file_path)
+                for graph in graphs:
+                    g_list, label_dict = dgl.load_graphs(file_path + '/' + graph)
+                    self.graph_list.append(g_list[0])
+                    for key, value in label_dict.items():
+                        if key != 'Drive-by-download':
+                            self.label_list.append(0)
+                        else:
+                            self.label_list.append(1)
 
     def __getitem__(self, idx):
         """
@@ -89,6 +90,8 @@ def main():
         for batched_graph, labels in train_dataloader:
             feats = batched_graph.ndata['feat'].float()
             logits = model(batched_graph, feats)
+            print(logits)
+            print(labels)
             loss = F.cross_entropy(logits, labels)
             opt.zero_grad()  # Clears the gradients of all weights
             loss.backward()  # backward propagation
@@ -97,7 +100,7 @@ def main():
     th.save(model.state_dict(), 'params.pkl')
     print("[+] The best training model has been saved.")
 
-    # test the saved model
+    # load the saved model
     model.load_state_dict(th.load('params.pkl'))
     correct = 0
     total = 0
@@ -109,7 +112,7 @@ def main():
         total += labels.size(0)
         # for tensor, bool has the sum() methos; and the item() return the value of tensor(only have one value)
         correct += (predicted == labels).sum().item()
-    print('Test accuracy of the model on the test data: {} %'.format(100 * correct / total))
+    print('Test accuracy of the model on the attack data: {} %'.format(100 * correct / total))
 
 def understand_of_testing(test_dataloader):
     model = Classifier(8, 20, 2)
@@ -143,7 +146,7 @@ def understand_of_testing(test_dataloader):
         total += labels.size(0)
         # for tensor, bool has the sum() methos; and the item() return the value of tensor(only have one value)
         correct += (predicted == labels).sum().item()
-    print('Test accuracy of the model on the test data: {} %'.format(100 * correct / total))
+    print('Test accuracy of the model on the attack data: {} %'.format(100 * correct / total))
 
 if __name__ == "__main__":
     dataset = MyDataset()
