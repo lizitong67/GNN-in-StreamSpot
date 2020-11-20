@@ -19,12 +19,10 @@ from dgi import DGI
 from anomaly_detection import Autoencoder
 
 
-
-# Customized Dataset
+# Customized Normal Dataset
 class Normal_Dataset(DGLDataset):
     def __init__(self):
         super(Normal_Dataset, self).__init__(name='Normal_Dataset', verbose=True)  # 调用父类构造方法
-
 
     def has_cache(self):
         return True
@@ -33,7 +31,8 @@ class Normal_Dataset(DGLDataset):
         self.graph_list = []
         self.label_list = []
         normal_scenario = "dataset/homograph/normal"
-        scenarios = os.listdir(normal_scenario)
+        # scenarios = os.listdir(normal_scenario)
+        scenarios = ['YouTube']
         for scenario in scenarios:
             file_path = "dataset/homograph/normal/" + scenario
             graphs = os.listdir(file_path)
@@ -52,6 +51,7 @@ class Normal_Dataset(DGLDataset):
         """Number of graphs in the dataset"""
         return len(self.graph_list)
 
+# Customized Attack Dataset
 class Attack_Dataset(DGLDataset):
     def __init__(self):
         super(Attack_Dataset, self).__init__(name="Attack_Dataset", verbose=True)  # 调用父类构造方法
@@ -154,8 +154,23 @@ def classification():
         loss = criterion(outputs, g_embedding)
         # print(loss)
         # tensor(0.0957, grad_fn=<MeanBackward0>)
-        loss_label.append([loss.item(), labels.item()])
-    print(loss_label)
+        loss_label.append([loss, labels])
+    # Acc
+    for threshold in th.arange(0.05, 0.09, 0.005):
+        predicts = []
+        labels = []
+        for item in loss_label:
+            abnormal_score = item[0]
+            label = item[1]
+            predict = 0 if abnormal_score > threshold else 1
+            labels.append(label)
+            predicts.append(predict)
+        tensor_predicts = th.tensor(predicts)
+        tensor_labels = th.tensor(labels)
+        correct_num = th.sum(tensor_predicts == tensor_labels)
+        correct = correct_num.item() * 1.0 / len(labels)
+        print("Threshold: "+str(round(threshold.item(), 3))+"; Acc: "+str(round(correct, 4)))
+
 
 if __name__ == "__main__":
     # initial parameters
@@ -186,8 +201,8 @@ if __name__ == "__main__":
         collate_fn=collate,
         drop_last=False,
         shuffle=True)
-    # graph_embedding()
-    # train_autoencoder()
-    classification()
+    graph_embedding()
+    train_autoencoder()
+    #classification()
 
 
