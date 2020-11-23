@@ -8,6 +8,7 @@ import dgl
 import torch as th
 import torch.nn as nn
 from dgl.nn.pytorch import GraphConv
+from dgl.nn.pytorch import SAGEConv
 import torch.nn.functional as F
 
 class GCN(nn.Module):
