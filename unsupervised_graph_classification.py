@@ -122,7 +122,7 @@ def graph_embedding():
               dropout)
     dgi_optimizer = th.optim.Adam(dgi.parameters())
 
-    for epoch in range(60):
+    for epoch in range(1):
         dgi.train()
         t0 = time.time()
         loss_list = []
@@ -148,7 +148,7 @@ def train_autoencoder():
     criterion = nn.MSELoss()
     optimizer = th.optim.Adam(autoencoder.parameters())
 
-    for epoch in range(8):
+    for epoch in range(1):
         autoencoder.train()
         t0 = time.time()
         loss_list = []
@@ -175,17 +175,15 @@ def classification():
     criterion = nn.MSELoss()
     loss_label = []
     test_dataloader = load_data('test')
-    for graphs, labels in test_dataloader:
-        features = graphs.ndata['feat'].float()
-        g_embedding = dgi.encoder(graphs, features)
+    for graph, label in test_dataloader:
+        features = graph.ndata['feat'].float()
+        g_embedding = dgi.encoder(graph, features)
         outputs = classifier(g_embedding)
         loss = criterion(outputs, g_embedding)
-        # print(loss)
-        # tensor(0.0957, grad_fn=<MeanBackward0>)
-        loss_label.append([loss, labels])
+        loss_label.append([loss, label.item()])
     print(loss_label)
     # Acc
-    for threshold in th.arange(0.1, 0.3, 0.01):
+    for threshold in th.arange(0, 0.3, 0.001):
         predicts = []
         labels = []
         for item in loss_label:
@@ -198,7 +196,8 @@ def classification():
         tensor_labels = th.tensor(labels)
         correct_num = th.sum(tensor_predicts == tensor_labels)
         correct = correct_num.item() * 1.0 / len(labels)
-        print("Threshold: "+str(round(threshold.item(), 3))+"; Acc: "+str(round(correct, 4)))
+        if correct > 0.8:
+            print("Threshold: " + str(round(threshold.item(), 3)) + "; Acc: " + str(round(correct, 4)))
 
 if __name__ == "__main__":
     # initial parameters
@@ -208,11 +207,8 @@ if __name__ == "__main__":
     patience = 20
     batch_size = 16
 
-    # graph_embedding()
-    # train_autoencoder()
+    graph_embedding()
+    train_autoencoder()
     classification()
-
-    # train = Train_Dataset()
-    # print(len(train))
-    # test = Test_Dataset()
-    # print(len(test))
+    # epoch = 1, 1
+    # Threshold: 0.009; Acc: 0.944

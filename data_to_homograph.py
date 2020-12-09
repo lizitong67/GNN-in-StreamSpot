@@ -16,9 +16,19 @@ from dgl.nn.pytorch import GraphConv
 from time import *
 import csv
 
+def visualization(g):
+    nx_g = g.to_networkx().to_undirected()
+    # Kamada-Kawaii layout usually looks pretty for arbitrary graphs
+    pos = nx.kamada_kawai_layout(nx_g)
+    nx.draw(nx_g, pos, with_labels=False, node_color=[[.7, .7, .7]])
 
+def same_direction(scenario, graph_id):
+    # The edges of the process reading and writing files are regarded as the same direction
+    edge_types = ['execve', 'access', 'mmap2', 'open', 'fstat', 'close', 'read', 'stat', 'write', 'unlink', 'clone',
+                  'waitpid', 'bind', 'listen', 'chmod', 'connect', 'writev', 'recv', 'ftruncate', 'sendmsg', 'send',
+                  'recvmsg', 'accept', 'sendto', 'recvfrom', 'truncate']
+    node_types = ['process', 'file', 'MAP_ANONYMOUS', 'stdin', 'stdout', 'stderr', 'NA', 'thread']
 
-def data_to_homograph(scenario, graph_id):
     data_path = 'dataset/split_data/' + scenario + '/' + str(graph_id) + '.csv'
     # data_entry: source-id, source-type, destination-id, destination-type, edge-type, timestamp, graph-id
 
@@ -67,22 +77,32 @@ def data_to_homograph(scenario, graph_id):
     g = dgl.graph((u_ids, v_ids), idtype=th.int32)
     g.ndata['feat'] = node_feats
     g.edata['feat'] = edge_feats
+
+    # To eliminate 0-in-degree nodes
     bg = dgl.add_reverse_edges(g, copy_ndata=True, copy_edata=True)
     return bg
+    # return g
+
+def different_direction(scenario, graph_id):
+    # The edges of the process reading and writing files are regarded as the same direction
+    edge_types = ['execve', 'access', 'mmap2', 'open', 'fstat', 'close', 'read', 'stat', 'write', 'unlink', 'clone',
+                  'waitpid', 'bind', 'listen', 'chmod', 'connect', 'writev', 'recv', 'ftruncate', 'sendmsg', 'send',
+                  'recvmsg', 'accept', 'sendto', 'recvfrom', 'truncate']
+    node_types = ['process', 'file', 'MAP_ANONYMOUS', 'stdin', 'stdout', 'stderr', 'NA', 'thread']
+
+    data_path = 'dataset/split_data/' + scenario + '/' + str(graph_id) + '.csv'
+    # data_entry: source-id, source-type, destination-id, destination-type, edge-type, timestamp, graph-id
+
+    # if edge_types in ['execve', 'access', '']
 
 
 if __name__ == "__main__":
     start_time = time()
-
-    edge_types = ['execve', 'access', 'mmap2', 'open', 'fstat', 'close', 'read', 'stat', 'write', 'unlink', 'clone',
-                  'waitpid', 'bind', 'listen', 'chmod', 'connect', 'writev', 'recv', 'ftruncate', 'sendmsg', 'send',
-                  'recvmsg', 'accept', 'sendto', 'recvfrom',
-                  'truncate']
-    node_types = ['process', 'file', 'MAP_ANONYMOUS', 'stdin', 'stdout', 'stderr', 'NA', 'thread']
-
-    scenario = "Drive-by-download"
-    for graph_id in range(300, 400):
-        g = data_to_homograph(scenario, graph_id)
+    scenario = "GMail"
+    for graph_id in range(100, 101):
+        g = same_direction(scenario, graph_id)
+        # visualization(g)
+        # break
         # # Utilize random walk to generate node features
         # result = dgl.sampling.random_walk(g, g.nodes(), length=5, restart_prob=0)
         # node_feats = result[0] + 1
@@ -92,7 +112,7 @@ if __name__ == "__main__":
         # g.ndata['feat'] = node_feats[:, 1:]
 
         # Store homograph locally
-        dgl_graphname = "dataset/homograph/" + scenario + "/" + str(graph_id) + ".bin"
+        dgl_graphname = "dataset/homograph/normal/" + scenario + "/" + str(graph_id) + ".bin"
         graph_labels = {scenario: th.tensor([graph_id])}
         dgl.save_graphs(dgl_graphname, [g], graph_labels)
         print("graph #" + str(graph_id) + " of scenario " + scenario + " has been saved!")
