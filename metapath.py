@@ -1,9 +1,12 @@
+#! /usr/bin/env python
+"""
+Get meta-path instances with a given target node and meta-path schema
+Author:	Alston
+Date:	2020.12.16
+"""
 import dgl
 import torch as th
 
-
-
-# Function of get meta-path instances with a given target node and meta-path schema
 def get_metapath_instances(g, metapath, target_node):
     import itertools
     # key:etype  value:adj_matrix
@@ -44,17 +47,36 @@ def get_metapath_instances(g, metapath, target_node):
         result.append([])
         for edge_instance in edge_instances:
             result[-1].append(edge_instance[0])
+
+    # save both 2 nodes for the last edge type
+    result.append([])
+    for edge_instance in metapath_instances[-1]:
+        result[-1].append(edge_instance[-1])
+
     return list(itertools.product(*result))
 
 
 
 if __name__ == "__main__":
-    g = dgl.heterograph({
-        ('A', 'AB', 'B'): ([0, 0, 1, 2], [1, 1, 2, 3]),
-        ('B', 'BA', 'A'): ([1, 2, 3], [0, 1, 2])
-        })
-    metapath = ['AB', 'BA', 'AB']
+    # g = dgl.heterograph({
+    #     ('A', 'AB', 'B'): ([0, 0, 1, 2], [1, 1, 2, 3]),
+    #     ('B', 'BA', 'A'): ([1, 2, 3], [0, 1, 2])
+    #     })
+    # print(g)
+    # metapath = ['AB', 'BA', 'AB']
+    # target_node = 1
+    # target_type = 'A'
+
+    from data_to_heterograph import data_to_heterograph
+    g = data_to_heterograph("YouTube", 1)
+    print("[+]The example heterogeneous graph:")
+    print(g)
+    print('--------------------------------------------------------------------')
+    metapath = [('process', 'clone', 'process'), ('process', 'execve', 'file')]
     target_node = 0
-    target_type = 'A'
+    target_type = 'process'
+
     metapath_instances = get_metapath_instances(g, metapath, target_node)
+    print('[+]The meta-path instances  with the meta-path schema "(process, clone, process), (process, execve, file)":')
     print(metapath_instances)
+    print('--------------------------------------------------------------------')
